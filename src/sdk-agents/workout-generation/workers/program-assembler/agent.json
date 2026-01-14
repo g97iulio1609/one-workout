@@ -1,0 +1,28 @@
+{
+  "id": "program-assembler",
+  "version": "2.0.0",
+  "type": "agent",
+  "description": "Assembles final workout program with post-processing and metadata",
+  "interface": {
+    "input": { "$ref": "program-assembler:input" },
+    "output": { "$ref": "program-assembler:output" }
+  },
+  "config": {
+    "tier": "balanced",
+    "temperature": 1,
+    "maxSteps": 10,
+    "maxTokens": 8192,
+    "timeout": 120000,
+    "executionMode": "durable",
+    "durability": {
+      "enabled": true,
+      "maxDurationMs": 600000,
+      "retry": {
+        "maxAttempts": 3,
+        "backoffMs": 1000,
+        "backoffMultiplier": 2
+      },
+      "checkpointStrategy": "step"
+    }
+  }
+}

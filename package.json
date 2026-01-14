@@ -1,0 +1,79 @@
+{
+  "name": "@onecoach/one-workout",
+  "version": "0.1.0",
+  "description": "OneWorkout - Unified Workout Domain for OneCoach",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./program-transform": {
+      "types": "./src/core/transformers/program-transform.ts",
+      "default": "./src/core/transformers/program-transform.ts"
+    },
+    "./program-server-transform": {
+      "types": "./src/core/transformers/program-server-transform.ts",
+      "default": "./src/core/transformers/program-server-transform.ts"
+    },
+    "./normalizers/workout-normalizer": {
+      "types": "./src/core/normalizers/workout-normalizer.ts",
+      "default": "./src/core/normalizers/workout-normalizer.ts"
+    },
+    "./weight-calculator": {
+      "types": "./src/core/calculators/weight-calculator.ts",
+      "default": "./src/core/calculators/weight-calculator.ts"
+    },
+    "./workout-weight-calculator.service": {
+      "types": "./src/core/workout-weight-calculator.service.ts",
+      "default": "./src/core/workout-weight-calculator.service.ts"
+    },
+    "./utils/progression-calculator": {
+      "types": "./src/core/calculators/progression-calculator.ts",
+      "default": "./src/core/calculators/progression-calculator.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "lint:fix": "eslint --fix \"src/**/*.{ts,tsx}\"",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@onecoach/constants": "workspace:*",
+    "@onecoach/contracts": "workspace:*",
+    "@onecoach/lib-core": "workspace:*",
+    "@onecoach/lib-import-core": "workspace:*",
+    "@onecoach/lib-shared": "workspace:*",
+    "@onecoach/one-agent": "workspace:*",
+    "@onecoach/schemas": "workspace:*",
+    "@onecoach/types": "workspace:*",
+    "@onecoach/types-ai": "workspace:*",
+    "@onecoach/types-analytics": "workspace:*",
+    "@onecoach/types-chat": "workspace:*",
+    "@onecoach/types-core": "workspace:*",
+    "@onecoach/types-database": "workspace:*",
+    "@onecoach/types-domain": "workspace:*",
+    "@onecoach/types-nutrition": "workspace:*",
+    "@onecoach/types-ui": "workspace:*",
+    "@onecoach/types-workout": "workspace:*",
+    "@prisma/client": "^7.2.0",
+    "ai": "6.0.19",
+    "xlsx": "^0.18.5",
+    "zod": "4.3.4"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.3",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.16"
+  },
+  "sideEffects": false
+}
