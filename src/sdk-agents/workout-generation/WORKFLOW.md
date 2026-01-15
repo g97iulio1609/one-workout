@@ -60,23 +60,36 @@ input:
 store: week1Template
 ```
 
+## 3.1. Validate Exercise IDs (Transform)
+
+**Critical programmatic step**: Validates and corrects all exercise IDs against the catalog.
+This ensures AI-generated exercise names/IDs are mapped to real database IDs.
+
+```yaml
+transform: merge-exercises
+input:
+  week1Template: ${artifacts.week1Template}
+  exerciseCatalog: ${input.exerciseCatalog}
+store: validatedWeek1
+```
+
 ## 4. Post-Processing (Parallel)
 
-Progression diff generation and validation can run in parallel as they both only depend on Week 1 template.
+Progression diff generation and validation can run in parallel as they both depend on the **validated** Week 1 template (with corrected exercise IDs).
 
 ```yaml
 parallel:
   branches:
     - - call: workers/progression-diff-generator
         input:
-          week1Template: ${artifacts.week1Template}
+          week1Template: ${artifacts.validatedWeek1.validatedWeek1}
           durationWeeks: ${input.goals.duration}
           progressionMatrix: ${artifacts.progressionMatrix.weeks}
           userProfile: ${input.userProfile}
         store: progressionDiffs
     - - call: workers/validator
         input:
-          week1: ${artifacts.week1Template}
+          week1: ${artifacts.validatedWeek1.validatedWeek1}
           goals: ${input.goals}
           userProfile: ${input.userProfile}
         store: validationResult
@@ -89,7 +102,7 @@ Pure TypeScript transform that clones Week 1 and applies progression diffs to cr
 ```yaml
 transform: assembleWeeksFromDiffs
 input:
-  week1Template: ${artifacts.week1Template}
+  week1Template: ${artifacts.validatedWeek1.validatedWeek1}
   progressionDiffs: ${artifacts.progressionDiffs}
   durationWeeks: ${input.goals.duration}
   goals: ${input.goals}

@@ -81,6 +81,15 @@ export const OneRepMaxRecordSchema = z.object({
   estimated: z.boolean(),
 });
 
+export const ExerciseCatalogEntrySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  category: z.string().optional(),
+  targetMuscles: z.array(z.string()).optional(),
+  equipment: z.array(z.string()).optional(),
+  difficulty: ExperienceLevelSchema.optional(),
+});
+
 // ==================== MAIN INPUT ====================
 
 export const WorkoutGenerationInputSchema = z.object({
@@ -90,7 +99,8 @@ export const WorkoutGenerationInputSchema = z.object({
   constraints: WorkoutConstraintsSchema,
   preferences: WorkoutPreferencesSchema.optional(),
   additionalNotes: z.string().optional(),
-  availableExercises: z.array(z.string()).optional(),
+  availableExercises: z.array(z.union([z.string(), ExerciseCatalogEntrySchema])).optional(),
+  exerciseCatalog: z.array(ExerciseCatalogEntrySchema).optional(),
   oneRepMaxData: z.array(OneRepMaxRecordSchema).optional(),
   // Dynamic week range for parallel generation (e.g., [2,3,4] for 4-week program)
   weekRange: z.array(z.number()).optional(),

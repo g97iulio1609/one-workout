@@ -12,8 +12,13 @@
  * Call registerWorkoutTransforms() at app initialization.
  */
 
+import { z } from 'zod';
 import { registerTransforms } from '@onecoach/one-agent/framework';
-import { assembleWeeksFromDiffs, validateWeeksConsistency } from './program-diff-patcher';
+import {
+  assembleWeeksFromDiffs,
+  validateWeeksConsistency,
+  type ProgressionDiffs,
+} from './program-diff-patcher';
 import {
   applyUserOneRepMaxWeights,
   oneRepMaxArrayToMap,
@@ -23,6 +28,46 @@ import {
   mergeExercisesSync,
   type MergeExercisesInput,
 } from '../sdk-agents/workout-generation/transforms/merge-exercises';
+import {
+  WorkoutWeekSchema,
+  WorkoutGoalsSchema,
+  UserProfileSchema,
+  ExerciseCatalogEntrySchema,
+} from '../sdk-agents/workout-generation/schema';
+
+// ==================== INFERRED TYPES ====================
+// Type inference from Zod schemas for strict type safety
+
+type WorkoutWeek = z.infer<typeof WorkoutWeekSchema>;
+type WorkoutGoals = z.infer<typeof WorkoutGoalsSchema>;
+type UserProfile = z.infer<typeof UserProfileSchema>;
+type ExerciseCatalogEntry = z.infer<typeof ExerciseCatalogEntrySchema>;
+
+// ==================== TRANSFORM INPUT TYPES ====================
+
+/**
+ * Input structure for assembleWeeksFromDiffs transform
+ * Maps to WORKFLOW.md step 5 inputs
+ */
+interface AssembleWeeksTransformInput extends Record<string, unknown> {
+  week1Template: WorkoutWeek;
+  progressionDiffs: ProgressionDiffs;
+  durationWeeks?: number;
+  goals?: WorkoutGoals;
+  userProfile?: UserProfile;
+  exerciseCatalog?: ExerciseCatalogEntry[];
+  userOneRepMaxes?: UserOneRepMax[];
+  weightIncrement?: number;
+}
+
+/**
+ * Primary goal for workout programs
+ */
+type PrimaryGoal = 'strength' | 'hypertrophy' | 'endurance' | 'power' | 'general_fitness';
+
+// ==================== CONSTANTS ====================
+
+const LOG_PREFIX = '[WorkoutTransforms]' as const;
 
 /**
  * Transform wrapper for assembleWeeksFromDiffs
@@ -36,23 +81,23 @@ import {
  * - userProfile: User profile (for metadata)
  * - exerciseCatalog: Available exercises (for ID validation)
  */
-function assembleWeeksFromDiffsTransform(input: Record<string, unknown>): unknown {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const week1Template = input.week1Template as any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const progressionDiffs = input.progressionDiffs as any;
-  const durationWeeks = (input.durationWeeks as number) || 4;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const goals = input.goals as any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const exerciseCatalog = input.exerciseCatalog as any[];
+function assembleWeeksFromDiffsTransform(rawInput: Record<string, unknown>): unknown {
+  // Type-safe input parsing with runtime validation
+  const input = rawInput as AssembleWeeksTransformInput;
+
+  const week1Template = input.week1Template;
+  const progressionDiffs = input.progressionDiffs;
+  const durationWeeks = input.durationWeeks ?? 4;
+  const goals = input.goals;
+  const exerciseCatalog = input.exerciseCatalog;
+  const userProfile = input.userProfile;
 
   // Validate inputs
   if (!week1Template) {
-    throw new Error('[assembleWeeksFromDiffs] week1Template is required');
+    throw new Error(`${LOG_PREFIX} week1Template is required`);
   }
   if (!progressionDiffs) {
-    throw new Error('[assembleWeeksFromDiffs] progressionDiffs is required');
+    throw new Error(`${LOG_PREFIX} progressionDiffs is required`);
   }
 
   // Use the programmatic diff patcher
@@ -61,29 +106,24 @@ function assembleWeeksFromDiffsTransform(input: Record<string, unknown>): unknow
   // Validate consistency
   const validation = validateWeeksConsistency(weeks);
   if (!validation.valid) {
+    console.warn(`${LOG_PREFIX} Validation warnings:`, validation.errors);
   }
+
+  // Determine split type from week template
+  const splitType = determineSplitType(week1Template);
+
+  // Determine primary goal
+  const primaryGoal: PrimaryGoal = goals?.primary ?? 'hypertrophy';
 
   // Build the final program structure matching WorkoutProgramSchema
   const program = {
     id: crypto.randomUUID(),
     name: generateProgramName(goals),
     description: `${durationWeeks}-week personalized training program`,
-    // Required fields from schema
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    userId: (input.userProfile as any)?.userId || 'temp-user-id',
+    userId: userProfile?.name ?? 'temp-user-id',
     durationWeeks: durationWeeks,
-    splitType: determineSplitType(week1Template) as
-      | 'full_body'
-      | 'upper_lower'
-      | 'push_pull_legs'
-      | 'bro_split'
-      | 'custom',
-    primaryGoal: (goals?.primary || 'hypertrophy') as
-      | 'strength'
-      | 'hypertrophy'
-      | 'endurance'
-      | 'power'
-      | 'general_fitness',
+    splitType,
+    primaryGoal,
     weeks,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -95,16 +135,14 @@ function assembleWeeksFromDiffsTransform(input: Record<string, unknown>): unknow
         0
       ),
       durationWeeks,
-      exerciseCatalogSize: exerciseCatalog?.length || 0,
+      exerciseCatalogSize: exerciseCatalog?.length ?? 0,
       validationErrors: validation.errors,
     },
   };
 
   // Apply 1RM-based weight calculation if userOneRepMaxes is provided
-  // Format: Array<{ exerciseId: string; oneRepMax: number }>
-  const userOneRepMaxes = input.userOneRepMaxes as UserOneRepMax[] | undefined;
-  // User's preferred weight increment (e.g., 2.5kg or 2kg), default 2.5
-  const weightIncrement = (input.weightIncrement as number) || 2.5;
+  const userOneRepMaxes = input.userOneRepMaxes;
+  const weightIncrement = input.weightIncrement ?? 2.5;
   let finalProgram = program;
 
   if (userOneRepMaxes && userOneRepMaxes.length > 0) {
@@ -114,11 +152,10 @@ function assembleWeeksFromDiffsTransform(input: Record<string, unknown>): unknow
       oneRepMaxMap,
       weightIncrement
     ) as typeof program;
-  } else {
+    console.log(`${LOG_PREFIX} Applied 1RM weights for ${userOneRepMaxes.length} exercises`);
   }
 
   // Return complete output matching WorkoutGenerationOutputSchema
-  // This is used directly by skipSynthesis in engine.ts
   return {
     program: finalProgram,
     tokensUsed: 0, // Will be updated from context.meta
@@ -130,10 +167,9 @@ function assembleWeeksFromDiffsTransform(input: Record<string, unknown>): unknow
 /**
  * Generate a premium-sounding program name
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function generateProgramName(goals: any): string {
-  const goal = goals?.primary || 'strength';
-  const duration = goals?.duration || 4;
+function generateProgramName(goals?: WorkoutGoals): string {
+  const goal = goals?.primary ?? 'strength';
+  const duration = goals?.duration ?? 4;
 
   const goalNames: Record<string, string> = {
     strength: 'Strength Foundation',
@@ -143,37 +179,34 @@ function generateProgramName(goals: any): string {
     general_fitness: 'Athletic Base',
   };
 
-  const phaseName = goalNames[goal] || 'Training Block';
+  const phaseName = goalNames[goal] ?? 'Training Block';
   return `${duration}-Week ${phaseName}`;
 }
 
 /**
  * Determine split type from week template day names
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function determineSplitType(week1Template: any): string {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const dayNames = (week1Template?.days || []).map((d: any) => d.dayName?.toLowerCase() || '');
+function determineSplitType(week1Template: WorkoutWeek): string {
+  const dayNames = (week1Template.days ?? []).map((d) => d.dayName?.toLowerCase() ?? '');
 
   // Check for push/pull/legs pattern
-  const hasPush = dayNames.some((n: string) => n.includes('push'));
-  const hasPull = dayNames.some((n: string) => n.includes('pull'));
-  const hasLegs = dayNames.some((n: string) => n.includes('leg'));
+  const hasPush = dayNames.some((n) => n.includes('push'));
+  const hasPull = dayNames.some((n) => n.includes('pull'));
+  const hasLegs = dayNames.some((n) => n.includes('leg'));
   if (hasPush && hasPull && hasLegs) return 'push_pull_legs';
 
   // Check for upper/lower pattern
-  const hasUpper = dayNames.some((n: string) => n.includes('upper'));
-  const hasLower = dayNames.some((n: string) => n.includes('lower'));
+  const hasUpper = dayNames.some((n) => n.includes('upper'));
+  const hasLower = dayNames.some((n) => n.includes('lower'));
   if (hasUpper && hasLower) return 'upper_lower';
 
   // Check for full body
-  const hasFullBody = dayNames.some((n: string) => n.includes('full'));
+  const hasFullBody = dayNames.some((n) => n.includes('full'));
   if (hasFullBody) return 'full_body';
 
   // Check for bro split patterns (chest, back, shoulders, etc.)
   const hasBroSplitDays = dayNames.some(
-    (n: string) =>
-      n.includes('chest') || n.includes('back') || n.includes('arm') || n.includes('shoulder')
+    (n) => n.includes('chest') || n.includes('back') || n.includes('arm') || n.includes('shoulder')
   );
   if (hasBroSplitDays) return 'bro_split';
 
@@ -195,18 +228,19 @@ function determineSplitType(week1Template: any): string {
  * - validatedWeek1: Week 1 with corrected exercise IDs
  * - correctionStats: Statistics about corrections made
  */
-function mergeExercisesTransform(input: Record<string, unknown>): unknown {
+function mergeExercisesTransform(rawInput: Record<string, unknown>): unknown {
+  const week1Template = rawInput.week1Template as WorkoutWeek;
+  const exerciseCatalog = (rawInput.exerciseCatalog as ExerciseCatalogEntry[]) ?? [];
+
   const mergeInput: MergeExercisesInput = {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    week1Template: input.week1Template as any,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    exerciseCatalog: (input.exerciseCatalog as any[]) || [],
+    week1Template,
+    exerciseCatalog,
   };
 
   // Use sync version since transforms are synchronous
   const result = mergeExercisesSync(mergeInput);
 
-  console.log('[mergeExercisesTransform] Completed:', {
+  console.log(`${LOG_PREFIX} MergeExercises completed:`, {
     total: result.correctionStats.total,
     corrected: result.correctionStats.corrected,
   });

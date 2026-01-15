@@ -13,6 +13,26 @@
  * @since v5.1
  */
 
+// ==================== CONSTANTS ====================
+
+/**
+ * Maximum Levenshtein distance for fuzzy matching.
+ * A lower value means stricter matching (fewer false positives).
+ * A higher value means more lenient matching (may match unrelated exercises).
+ */
+const FUZZY_MATCH_MAX_DISTANCE = 5;
+
+/**
+ * Confidence score reduction per Levenshtein distance unit.
+ * At max distance (5), confidence will be: 1 - (5 * 0.1) = 0.5
+ */
+const CONFIDENCE_REDUCTION_PER_DISTANCE = 0.1;
+
+/**
+ * Minimum confidence score for fuzzy matches.
+ */
+const FUZZY_MATCH_MIN_CONFIDENCE = 0.5;
+
 /**
  * Logger interface to avoid dependencies
  */
@@ -94,7 +114,7 @@ function normalizeName(name: string): string {
  * 1. Validate provided ID (if any)
  * 2. Exact name match (case-insensitive)
  * 3. Normalized name match
- * 4. Fuzzy match (Levenshtein distance <= 5)
+ * 4. Fuzzy match (Levenshtein distance <= FUZZY_MATCH_MAX_DISTANCE)
  * 5. Partial match (substring)
  * 6. Category + muscle fallback
  */
@@ -207,13 +227,16 @@ export class ExerciseMatcher {
       }
     }
 
-    // Accept fuzzy match if distance is small enough (<= 5 chars different)
-    if (bestFuzzyMatch && bestDistance <= 5) {
+    // Accept fuzzy match if distance is small enough
+    if (bestFuzzyMatch && bestDistance <= FUZZY_MATCH_MAX_DISTANCE) {
       return {
         exerciseId: bestFuzzyMatch.id,
         exerciseName: bestFuzzyMatch.name,
         matchType: 'fuzzy',
-        confidence: Math.max(0.5, 1 - bestDistance * 0.1),
+        confidence: Math.max(
+          FUZZY_MATCH_MIN_CONFIDENCE,
+          1 - bestDistance * CONFIDENCE_REDUCTION_PER_DISTANCE
+        ),
         originalId: providedId,
         wasCorrection: !!providedId,
       };

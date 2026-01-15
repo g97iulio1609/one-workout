@@ -2,9 +2,9 @@
  * Merge Exercises Transform
  *
  * Validates and corrects exercise IDs in the generated Week 1 template using the exercise catalog.
- * This ensures that all exercises have valid IDs before progression calculation.
+ * This ensures that all exercises have valid IDs before progression diffs and validation.
  *
- * Pipeline position: After exercise-selector, before progression-calculator
+ * Pipeline position: After day-generator, before progression-diff-generator/validator
  *
  * Features:
  * - Validates exerciseId against catalog
@@ -98,13 +98,9 @@ const transformLogger = {
 export async function mergeExercises(input: MergeExercisesInput): Promise<MergeExercisesOutput> {
   const { week1Template, exerciseCatalog } = input;
 
-  // Early return if no catalog provided
+  // Hard fail if no catalog provided (deterministic ID matching required)
   if (!exerciseCatalog || exerciseCatalog.length === 0) {
-    transformLogger.warn('No exercise catalog provided, skipping validation');
-    return {
-      validatedWeek1: week1Template,
-      correctionStats: { total: 0, corrected: 0, failed: 0 },
-    };
+    throw new Error('[MergeExercises] Exercise catalog is required for deterministic ID matching.');
   }
 
   // Create matcher instance
@@ -190,10 +186,7 @@ export function mergeExercisesSync(input: MergeExercisesInput): MergeExercisesOu
   const { week1Template, exerciseCatalog } = input;
 
   if (!exerciseCatalog || exerciseCatalog.length === 0) {
-    return {
-      validatedWeek1: week1Template,
-      correctionStats: { total: 0, corrected: 0, failed: 0 },
-    };
+    throw new Error('[MergeExercises] Exercise catalog is required for deterministic ID matching.');
   }
 
   const matcher = createExerciseMatcher(exerciseCatalog as CatalogExercise[], transformLogger);
