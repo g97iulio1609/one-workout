@@ -111,8 +111,8 @@ export async function mergeExercises(input: MergeExercisesInput): Promise<MergeE
   let correctedCount = 0;
   const corrections: MergeExercisesOutput['corrections'] = [];
 
-  // Deep clone to avoid mutation
-  const validatedWeek: typeof week1Template = JSON.parse(JSON.stringify(week1Template));
+  // Deep clone to avoid mutation (structuredClone is faster than JSON.parse/stringify)
+  const validatedWeek: typeof week1Template = structuredClone(week1Template);
 
   // Process each day's set groups
   for (const day of validatedWeek.days) {
@@ -195,7 +195,7 @@ export function mergeExercisesSync(input: MergeExercisesInput): MergeExercisesOu
   let correctedCount = 0;
   const corrections: MergeExercisesOutput['corrections'] = [];
 
-  const validatedWeek: typeof week1Template = JSON.parse(JSON.stringify(week1Template));
+  const validatedWeek: typeof week1Template = structuredClone(week1Template);
 
   for (const day of validatedWeek.days) {
     if (!day.setGroups || !Array.isArray(day.setGroups)) {

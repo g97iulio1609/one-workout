@@ -132,7 +132,7 @@ export async function createWorkoutSession(
     // SSOT: setGroups è l'unica fonte di verità per le serie
     // Hydrate setGroups[].sets da baseSet + count usando helper centralizzato
     const exercises = day.exercises
-      ? JSON.parse(JSON.stringify(day.exercises)).map((ex: any) => {
+      ? structuredClone(day.exercises).map((ex: any) => {
           if (ex.setGroups && ex.setGroups.length > 0) {
             logger.warn(
               `[createWorkoutSession] Hydrating setGroups for exercise ${ex.name || ex.id}`

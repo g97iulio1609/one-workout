@@ -118,8 +118,8 @@ export function applyUserOneRepMaxWeights(
     return program;
   }
 
-  // Deep clone to avoid mutation
-  const enrichedProgram: ProgramWithWeeks = JSON.parse(JSON.stringify(program));
+  // Deep clone to avoid mutation (structuredClone is faster than JSON.parse/stringify)
+  const enrichedProgram: ProgramWithWeeks = structuredClone(program);
 
   // Ensure increment is valid (default to 2.5 if invalid)
   const increment = weightIncrement > 0 ? weightIncrement : 2.5;
