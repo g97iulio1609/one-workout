@@ -4,8 +4,8 @@
   "type": "agent",
   "description": "Calculates week-to-week progression matrix",
   "interface": {
-    "input": { "$ref": "progression-calculator:input" },
-    "output": { "$ref": "progression-calculator:output" }
+    "input": { "$ref": "./schema.ts#ProgressionCalculatorInputSchema" },
+    "output": { "$ref": "./schema.ts#ProgressionCalculatorOutputSchema" }
   },
   "config": {
     "tier": "balanced",

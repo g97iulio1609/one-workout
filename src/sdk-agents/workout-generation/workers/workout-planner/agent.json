@@ -4,8 +4,8 @@
   "type": "agent",
   "description": "Plans weekly structure and training split",
   "interface": {
-    "input": { "$ref": "workout-planner:input" },
-    "output": { "$ref": "workout-planner:output" }
+    "input": { "$ref": "./schema.ts#WorkoutPlannerInputSchema" },
+    "output": { "$ref": "./schema.ts#WorkoutPlannerOutputSchema" }
   },
   "config": {
     "tier": "balanced",

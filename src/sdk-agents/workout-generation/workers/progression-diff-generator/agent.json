@@ -4,8 +4,8 @@
   "type": "agent",
   "description": "Generates progression diffs for weeks 2-4 based on Week 1 template",
   "interface": {
-    "input": { "$ref": "progression-diff-generator:input" },
-    "output": { "$ref": "progression-diff-generator:output" }
+    "input": { "$ref": "./schema.ts#ProgressionDiffGeneratorInputSchema" },
+    "output": { "$ref": "./schema.ts#ProgressionDiffGeneratorOutputSchema" }
   },
   "mcpServers": {},
   "config": {

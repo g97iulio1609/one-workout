@@ -4,8 +4,8 @@
   "type": "agent",
   "description": "Generates detailed workout days with sets, reps, and weights",
   "interface": {
-    "input": { "$ref": "day-generator:input" },
-    "output": { "$ref": "day-generator:output" }
+    "input": { "$ref": "./schema.ts#DayGeneratorInputSchema" },
+    "output": { "$ref": "./schema.ts#DayGeneratorOutputSchema" }
   },
   "config": {
     "tier": "balanced",

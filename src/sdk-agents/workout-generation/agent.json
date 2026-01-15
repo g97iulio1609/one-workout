@@ -4,8 +4,8 @@
   "type": "agent",
   "description": "Multi-agent workout program generator using SDK v4.0 with durable execution",
   "interface": {
-    "input": { "$ref": "workout-generation:input" },
-    "output": { "$ref": "workout-generation:output" }
+    "input": { "$ref": "./schema.ts#WorkoutGenerationInputSchema" },
+    "output": { "$ref": "./schema.ts#WorkoutGenerationOutputSchema" }
   },
   "mcpServers": {},
   "config": {

@@ -4,8 +4,8 @@
   "type": "agent",
   "description": "Generates exercises based on description and criteria",
   "interface": {
-    "input": { "$ref": "exercise-generation:input" },
-    "output": { "$ref": "exercise-generation:output" }
+    "input": { "$ref": "./schema.ts#ExerciseGenerationInputSchema" },
+    "output": { "$ref": "./schema.ts#ExerciseGenerationOutputSchema" }
   },
   "mcpServers": {},
   "config": {

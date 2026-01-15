@@ -4,8 +4,8 @@
   "type": "agent",
   "description": "Validates workout program for quality and consistency",
   "interface": {
-    "input": { "$ref": "validator:input" },
-    "output": { "$ref": "validator:output" }
+    "input": { "$ref": "./schema.ts#ValidatorInputSchema" },
+    "output": { "$ref": "./schema.ts#ValidatorOutputSchema" }
   },
   "config": {
     "tier": "fast",

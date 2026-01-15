@@ -4,8 +4,8 @@
   "type": "agent",
   "description": "Selects optimal exercises from catalog based on goals and constraints",
   "interface": {
-    "input": { "$ref": "exercise-selector:input" },
-    "output": { "$ref": "exercise-selector:output" }
+    "input": { "$ref": "./schema.ts#ExerciseSelectorInputSchema" },
+    "output": { "$ref": "./schema.ts#ExerciseSelectorOutputSchema" }
   },
   "config": {
     "tier": "balanced",

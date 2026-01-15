@@ -4,8 +4,8 @@
   "type": "agent",
   "description": "Assembles final workout program with post-processing and metadata",
   "interface": {
-    "input": { "$ref": "program-assembler:input" },
-    "output": { "$ref": "program-assembler:output" }
+    "input": { "$ref": "./schema.ts#ProgramAssemblerInputSchema" },
+    "output": { "$ref": "./schema.ts#ProgramAssemblerOutputSchema" }
   },
   "config": {
     "tier": "balanced",
