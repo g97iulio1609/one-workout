@@ -2,33 +2,34 @@
 
 This workflow orchestrates multiple specialized agents to generate a complete personalized workout program.
 
-## 1. Select Exercises
+## 1. Initial Analysis (Parallel)
+
+Exercise selection and workout planning can run in parallel since they depend only on initial input.
 
 ```yaml
-call: workers/exercise-selector
-input:
-  goals: ${input.goals}
-  constraints: ${input.constraints}
-  preferences: ${input.preferences}
-  availableExercises: ${input.availableExercises}
-  userProfile: ${input.userProfile}
-store: selectedExercises
+parallel:
+  branches:
+    - - call: workers/exercise-selector
+        input:
+          goals: ${input.goals}
+          constraints: ${input.constraints}
+          preferences: ${input.preferences}
+          availableExercises: ${input.availableExercises}
+          userProfile: ${input.userProfile}
+        store: selectedExercises
+    - - call: workers/workout-planner
+        input:
+          goals: ${input.goals}
+          userProfile: ${input.userProfile}
+          exercises: ${input.exerciseCatalog}
+          daysPerWeek: ${input.goals.daysPerWeek}
+          sessionDuration: ${input.goals.sessionDuration}
+        store: weeklySchedule
 ```
 
-## 2. Plan Weekly Structure
+## 2. Calculate Progression Matrix
 
-```yaml
-call: workers/workout-planner
-input:
-  goals: ${input.goals}
-  userProfile: ${input.userProfile}
-  exercises: ${artifacts.selectedExercises.exercises}
-  daysPerWeek: ${input.goals.daysPerWeek}
-  sessionDuration: ${input.goals.sessionDuration}
-store: weeklySchedule
-```
-
-## 3. Calculate Progression Matrix
+Uses the weekly schedule from planner to calculate intensity/volume progression across weeks.
 
 ```yaml
 call: workers/progression-calculator
@@ -41,7 +42,9 @@ input:
 store: progressionMatrix
 ```
 
-## 4. Generate Week 1 (mode: week1)
+## 3. Generate Week 1 (mode: week1)
+
+Creates the complete Week 1 template with all exercises, sets, reps using selected exercises and planned structure.
 
 ```yaml
 call: workers/day-generator
@@ -57,30 +60,31 @@ input:
 store: week1Template
 ```
 
-## 5. Generate Progression Diffs
+## 4. Post-Processing (Parallel)
+
+Progression diff generation and validation can run in parallel as they both only depend on Week 1 template.
 
 ```yaml
-call: workers/progression-diff-generator
-input:
-  week1Template: ${artifacts.week1Template}
-  durationWeeks: ${input.goals.duration}
-  progressionMatrix: ${artifacts.progressionMatrix.weeks}
-  userProfile: ${input.userProfile}
-store: progressionDiffs
+parallel:
+  branches:
+    - - call: workers/progression-diff-generator
+        input:
+          week1Template: ${artifacts.week1Template}
+          durationWeeks: ${input.goals.duration}
+          progressionMatrix: ${artifacts.progressionMatrix.weeks}
+          userProfile: ${input.userProfile}
+        store: progressionDiffs
+    - - call: workers/validator
+        input:
+          week1: ${artifacts.week1Template}
+          goals: ${input.goals}
+          userProfile: ${input.userProfile}
+        store: validationResult
 ```
 
-## 6. Validate Week 1 Structure
+## 5. Assemble Final Program
 
-```yaml
-call: workers/validator
-input:
-  week1: ${artifacts.week1Template}
-  goals: ${input.goals}
-  userProfile: ${input.userProfile}
-store: validationResult
-```
-
-## 7. Assemble Final Program
+Pure TypeScript transform that clones Week 1 and applies progression diffs to create all weeks.
 
 ```yaml
 transform: assembleWeeksFromDiffs

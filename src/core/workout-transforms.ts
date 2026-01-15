@@ -6,6 +6,7 @@
  *
  * Features:
  * - assembleWeeksFromDiffs: Clones Week 1 and applies progression diffs
+ * - mergeExercises: Validates and corrects exercise IDs using catalog
  * - 1RM Weight Calculation: Calculates weights from intensityPercent using user's 1RM values
  *
  * Call registerWorkoutTransforms() at app initialization.
@@ -18,6 +19,10 @@ import {
   oneRepMaxArrayToMap,
   type UserOneRepMax,
 } from './apply-1rm-weights';
+import {
+  mergeExercisesSync,
+  type MergeExercisesInput,
+} from '../sdk-agents/workout-generation/transforms/merge-exercises';
 
 /**
  * Transform wrapper for assembleWeeksFromDiffs
@@ -177,14 +182,48 @@ function determineSplitType(week1Template: any): string {
 }
 
 /**
+ * Transform wrapper for mergeExercises
+ *
+ * Validates and corrects exercise IDs in Week 1 template using the catalog.
+ * This runs after exercise-selector and before progression calculations.
+ *
+ * Input:
+ * - week1Template: The Week 1 from exercise-selector
+ * - exerciseCatalog: Available exercises for validation
+ *
+ * Output:
+ * - validatedWeek1: Week 1 with corrected exercise IDs
+ * - correctionStats: Statistics about corrections made
+ */
+function mergeExercisesTransform(input: Record<string, unknown>): unknown {
+  const mergeInput: MergeExercisesInput = {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    week1Template: input.week1Template as any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    exerciseCatalog: (input.exerciseCatalog as any[]) || [],
+  };
+
+  // Use sync version since transforms are synchronous
+  const result = mergeExercisesSync(mergeInput);
+
+  console.log('[mergeExercisesTransform] Completed:', {
+    total: result.correctionStats.total,
+    corrected: result.correctionStats.corrected,
+  });
+
+  return result;
+}
+
+/**
  * Register all workout transforms with the SDK
  * Call this at app initialization (e.g., in instrumentation.ts or api route)
  */
 export function registerWorkoutTransforms(): void {
   registerTransforms({
     assembleWeeksFromDiffs: assembleWeeksFromDiffsTransform,
+    mergeExercises: mergeExercisesTransform,
   });
 }
 
 // Export for direct use if needed
-export { assembleWeeksFromDiffsTransform };
+export { assembleWeeksFromDiffsTransform, mergeExercisesTransform };

@@ -154,7 +154,34 @@ export const WorkoutProgramSchema = z.object({
 
 // ==================== MAIN OUTPUT ====================
 
+/**
+ * Workout Generation Output Schema
+ *
+ * IMPORTANT: _progress is positioned FIRST to ensure it's emitted early
+ * in the partialOutputStream during AI structured output streaming.
+ * The AI SDK streams fields in order as they're generated.
+ */
 export const WorkoutGenerationOutputSchema = z.object({
+  /**
+   * AI-driven progress updates (v4.1 / v5.1)
+   *
+   * POSITIONED FIRST: This field is at the top of the schema to ensure
+   * the AI populates it early during structured output generation.
+   * The partialOutputStream emits partial objects as fields are generated,
+   * so having _progress first means it arrives early in the stream.
+   *
+   * REQUIRED: The AI MUST populate this field BEFORE generating the program.
+   * This provides real-time feedback to the UI during execution.
+   *
+   * @see PROGRESS_PROMPT_INSTRUCTIONS in OneAgent SDK types
+   */
+  _progress: ProgressFieldSchema.describe(
+    'EMIT FIRST: Progress update. Populate this BEFORE generating program content. ' +
+      'Fields: step (internal ID), userMessage (user-friendly, same language as input), ' +
+      'estimatedProgress (0-100), iconHint. Update throughout the generation process.'
+  ),
+
+  // Main output fields
   program: WorkoutProgramSchema,
   tokensUsed: z.number(),
   costUSD: z.number(),
@@ -165,21 +192,6 @@ export const WorkoutGenerationOutputSchema = z.object({
       refinementPasses: z.number().optional(),
     })
     .optional(),
-
-  /**
-   * AI-driven progress updates (v4.1)
-   *
-   * The orchestrator populates this field before each major workflow step
-   * to provide real-time feedback to the UI. This field is transient and
-   * not included in the final output.
-   *
-   * @see PROGRESS_PROMPT_INSTRUCTIONS in OneAgent SDK types
-   */
-  _progress: ProgressFieldSchema.optional().describe(
-    'Real-time progress update. Orchestrator should populate this before each worker agent step ' +
-      "with: step (internal ID), userMessage (user-friendly text in user's language), " +
-      'estimatedProgress (0-100), and optionally adminDetails and iconHint.'
-  ),
 });
 
 // ==================== SCHEMA REGISTRATION ====================

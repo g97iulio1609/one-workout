@@ -15,6 +15,7 @@ export * from './operations/workout-operations';
 
 // Utils
 export * from './utils/workout-program-helpers';
+export * from './utils/exercise-matcher';
 export * from './helpers/utils/set-group-helpers';
 export * from './helpers/exercise-builder';
 
